@@ -1,0 +1,30 @@
+# LangGraph & LangChain Core
+langgraph>=0.2.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-community>=0.3.0
+
+# OpenTelemetry Observability Stack
+opentelemetry-api>=1.24.0
+opentelemetry-sdk>=1.24.0
+opentelemetry-instrumentation>=0.45b0
+opentelemetry-instrumentation-httpx>=0.45b0
+opentelemetry-instrumentation-langchain>=0.1.0
+opentelemetry-exporter-otlp-proto-http>=1.24.0  # Optional: For external OTLP collector
+
+# FastAPI Backend
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+
+# Database & Storage
+aiofiles>=24.1.0
+aiosqlite>=0.20.0
+
+# LLM Abstraction & Proxy
+litellm>=1.50.0
+
+# Utilities
+python-dotenv>=1.0.0
+cloudpickle>=3.0.0  # For complex object serialization
