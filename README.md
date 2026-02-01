@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="tracelens_logo.png" alt="TraceLens Logo" width="200" />
+
 # TraceLens
 
 **A Visual Debugger and Replay Engine for LangGraph Agentic Workflows**

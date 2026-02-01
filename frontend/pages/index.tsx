@@ -33,18 +33,21 @@ export default function Home() {
         <title>TraceLens - Agent Debugger</title>
         <meta name="description" content="Visual Debugger for LangGraph Agents" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/tracelens_logo.png" type="image/png" />
       </Head>
       <main className="min-h-screen bg-gray-50">
         <div className="max-w-[1600px] mx-auto px-6 py-6">
           {/* Header */}
-          <header className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              TraceLens
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Visual Debugger for LangGraph Agents
-            </p>
+          <header className="mb-6 flex items-center gap-3">
+            <img src="/tracelens_logo.png" alt="TraceLens" className="h-10 w-auto" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+                TraceLens
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Visual Debugger for LangGraph Agents
+              </p>
+            </div>
           </header>
 
           {/* Main Layout */}
