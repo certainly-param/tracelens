@@ -46,6 +46,12 @@ Thumbs.db
 # Docker
 .dockerignore
 
-# Test files (temporary debugging scripts)
-test_*.py
-*_test.py
+# Test files (temporary debugging scripts at repo root only)
+/test_*.py
+/*_test.py
+
+# Test temp (storage tests)
+backend/tests/.tmp/
+
+# Docs
+docs/

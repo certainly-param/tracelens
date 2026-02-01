@@ -25,6 +25,9 @@ aiosqlite>=0.20.0
 # LLM Abstraction & Proxy
 litellm>=1.50.0
 
+# Security
+slowapi>=0.1.9  # Rate limiting
+
 # Utilities
 python-dotenv>=1.0.0
 cloudpickle>=3.0.0  # For complex object serialization

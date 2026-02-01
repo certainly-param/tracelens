@@ -2,11 +2,13 @@
 import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_KEY = process.env.NEXT_PUBLIC_TRACELENS_API_KEY || '';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    ...(API_KEY && { 'X-API-Key': API_KEY }),
   },
 });
 
@@ -114,6 +116,133 @@ export const api = {
     total: number;
   }> {
     const response = await apiClient.get(`/api/runs/${threadId}/spans`);
+    return response.data;
+  },
+
+  // Get checkpoint diff
+  async getCheckpointDiff(
+    threadId: string,
+    checkpointId1: string,
+    checkpointId2: string
+  ): Promise<{
+    checkpoint_id_1: string;
+    checkpoint_id_2: string;
+    added: Record<string, any>;
+    removed: Record<string, any>;
+    modified: Record<string, any>;
+  }> {
+    const response = await apiClient.get(
+      `/api/runs/${threadId}/checkpoints/${checkpointId1}/diff`,
+      { params: { compare_to: checkpointId2 } }
+    );
+    return response.data;
+  },
+
+  // Get timeline
+  async getTimeline(threadId: string): Promise<{
+    thread_id: string;
+    events: Array<{
+      event_id: string;
+      event_type: string;
+      timestamp: string;
+      checkpoint_id?: string;
+      span_id?: string;
+      node_id?: string;
+      description: string;
+      metadata: Record<string, any>;
+    }>;
+    total: number;
+  }> {
+    const response = await apiClient.get(`/api/runs/${threadId}/timeline`);
+    return response.data;
+  },
+
+  // Phase 4: Active Intervention
+
+  // Update checkpoint state
+  async updateCheckpointState(
+    threadId: string,
+    checkpointId: string,
+    state: Record<string, any>,
+    description?: string
+  ): Promise<{
+    success: boolean;
+    new_checkpoint_id: string;
+    thread_id: string;
+    message: string;
+  }> {
+    const response = await apiClient.put(
+      `/api/runs/${threadId}/checkpoints/${checkpointId}/state`,
+      { state, description }
+    );
+    return response.data;
+  },
+
+  // Validate checkpoint state
+  async validateCheckpointState(
+    threadId: string,
+    checkpointId: string,
+    state: Record<string, any>
+  ): Promise<{
+    valid: boolean;
+    errors: Array<{ field: string; message: string; severity: string }>;
+    warnings: Array<{ field: string; message: string; severity: string }>;
+  }> {
+    const response = await apiClient.post(
+      `/api/runs/${threadId}/checkpoints/${checkpointId}/validate`,
+      { state }
+    );
+    return response.data;
+  },
+
+  // Resume execution from checkpoint
+  async resumeExecution(
+    threadId: string,
+    checkpointId: string,
+    modifiedState?: Record<string, any>,
+    description?: string
+  ): Promise<{
+    success: boolean;
+    new_thread_id: string;
+    original_thread_id: string;
+    from_checkpoint_id: string;
+    message: string;
+  }> {
+    const response = await apiClient.post(
+      `/api/runs/${threadId}/checkpoints/${checkpointId}/resume`,
+      {
+        from_checkpoint_id: checkpointId,
+        modified_state: modifiedState,
+        description,
+      }
+    );
+    return response.data;
+  },
+
+  // Create execution branch
+  async createBranch(
+    threadId: string,
+    checkpointId: string,
+    branchName?: string,
+    modifiedState?: Record<string, any>,
+    description?: string
+  ): Promise<{
+    success: boolean;
+    branch_thread_id: string;
+    original_thread_id: string;
+    from_checkpoint_id: string;
+    branch_name?: string;
+    message: string;
+  }> {
+    const response = await apiClient.post(
+      `/api/runs/${threadId}/checkpoints/${checkpointId}/branch`,
+      {
+        from_checkpoint_id: checkpointId,
+        branch_name: branchName,
+        modified_state: modifiedState,
+        description,
+      }
+    );
     return response.data;
   },
 };

@@ -111,5 +111,12 @@ def get_db_manager(db_path: Optional[str] = None) -> DatabaseManager:
         _db_manager = DatabaseManager(resolved_path)
         _db_manager_path = resolved_path
         _db_manager._initialized = False  # Force re-initialization
-    
+
     return _db_manager
+
+
+def reset_db_manager():
+    """Reset the global database manager. For testing only."""
+    global _db_manager, _db_manager_path
+    _db_manager = None
+    _db_manager_path = None

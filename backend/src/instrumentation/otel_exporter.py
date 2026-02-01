@@ -1,11 +1,17 @@
 """SQLite exporter for OpenTelemetry spans."""
 import json
+import os
 from datetime import datetime
 from typing import Any, Dict, Optional
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
 from opentelemetry.trace import Span
 
 from ..storage.db_manager import get_db_manager
+
+
+def _verbose() -> bool:
+    """True when verbose export logging is enabled (env TRACELENS_OTEL_VERBOSE=1)."""
+    return os.getenv("TRACELENS_OTEL_VERBOSE", "").lower() in ("1", "true", "yes")
 
 
 class SqliteSpanExporter(SpanExporter):
@@ -34,12 +40,12 @@ class SqliteSpanExporter(SpanExporter):
         if not spans:
             return SpanExportResult.SUCCESS
         
-        # Debug: Log span export
-        print(f"[SpanExporter] Exporting {len(spans)} spans")
-        for span in spans:
-            attrs = dict(span.attributes) if span.attributes else {}
-            thread_id = attrs.get("thread_id") or attrs.get("langgraph.thread_id")
-            print(f"  - {span.name}: thread_id={thread_id}")
+        if _verbose():
+            print(f"[SpanExporter] Exporting {len(spans)} spans")
+            for span in spans:
+                attrs = dict(span.attributes) if span.attributes else {}
+                thread_id = attrs.get("thread_id") or attrs.get("langgraph.thread_id")
+                print(f"  - {span.name}: thread_id={thread_id}")
         
         # Use a thread-safe approach for async export
         def run_async():
@@ -48,7 +54,8 @@ class SqliteSpanExporter(SpanExporter):
                 asyncio.set_event_loop(loop)
                 loop.run_until_complete(self._export_async(spans))
                 loop.close()
-                print(f"[SpanExporter] Successfully exported {len(spans)} spans")
+                if _verbose():
+                    print(f"[SpanExporter] Successfully exported {len(spans)} spans")
             except Exception as e:
                 print(f"[SpanExporter] Error exporting spans: {e}")
                 import traceback
@@ -84,8 +91,7 @@ class SqliteSpanExporter(SpanExporter):
                 # Extract thread_id from attributes if present
                 thread_id = attributes.get("thread_id") or attributes.get("langgraph.thread_id")
                 
-                # Debug: Log if thread_id is missing
-                if not thread_id:
+                if _verbose() and not thread_id:
                     print(f"[SpanExporter] WARNING: Span '{span.name}' has no thread_id attribute")
                     print(f"  Available attributes: {list(attributes.keys())}")
                 

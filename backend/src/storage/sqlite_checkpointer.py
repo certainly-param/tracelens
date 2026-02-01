@@ -257,3 +257,210 @@ class SqliteCheckpointer(BaseCheckpointSaver):
                     ))
         
         return checkpoints
+    
+    # Phase 4: Active Intervention Methods
+    
+    async def create_modified_checkpoint(
+        self,
+        thread_id: str,
+        checkpoint_id: str,
+        modified_state: Dict[str, Any],
+        description: Optional[str] = None,
+    ) -> str:
+        """Create a new checkpoint with modified state.
+        
+        Args:
+            thread_id: Thread ID
+            checkpoint_id: Original checkpoint ID to modify
+            modified_state: Modified state dictionary
+            description: Optional description of the modification
+            
+        Returns:
+            New checkpoint ID
+        """
+        await self._ensure_initialized()
+        
+        # Generate new checkpoint ID
+        import uuid
+        new_checkpoint_id = f"{checkpoint_id}_modified_{uuid.uuid4().hex[:8]}"
+        
+        # Serialize modified state
+        state_data = self._serialize_state(modified_state)
+        
+        # Create metadata
+        metadata = {
+            "modified_from": checkpoint_id,
+            "modification_time": datetime.now().isoformat(),
+            "description": description or "State modified programmatically",
+        }
+        
+        async with self.db_manager.get_connection() as db:
+            await db.execute("""
+                INSERT INTO checkpoints 
+                (thread_id, checkpoint_id, checkpoint_ns, checkpoint_data, 
+                 parent_checkpoint_id, metadata, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                thread_id,
+                new_checkpoint_id,
+                "",
+                state_data,
+                checkpoint_id,
+                json.dumps(metadata),
+                datetime.now().isoformat()
+            ))
+            await db.commit()
+        
+        return new_checkpoint_id
+    
+    async def create_resume_checkpoint(
+        self,
+        original_thread_id: str,
+        checkpoint_id: str,
+        new_thread_id: str,
+        modified_state: Optional[Dict[str, Any]] = None,
+        description: Optional[str] = None,
+    ) -> str:
+        """Create a checkpoint in a new thread for resuming execution.
+        
+        Args:
+            original_thread_id: Original thread ID
+            checkpoint_id: Checkpoint ID to resume from
+            new_thread_id: New thread ID for resumed execution
+            modified_state: Optional modified state (if None, uses original state)
+            description: Optional description
+            
+        Returns:
+            New checkpoint ID in the new thread
+        """
+        await self._ensure_initialized()
+        
+        async with self.db_manager.get_connection() as db:
+            # Get original checkpoint
+            async with db.execute("""
+                SELECT checkpoint_data FROM checkpoints
+                WHERE thread_id = ? AND checkpoint_id = ?
+            """, (original_thread_id, checkpoint_id)) as cursor:
+                row = await cursor.fetchone()
+                if not row:
+                    raise ValueError(f"Checkpoint {checkpoint_id} not found in thread {original_thread_id}")
+                
+                original_data = row[0]
+            
+            # Deserialize original state
+            state = self._deserialize_state(original_data)
+            
+            # Apply modifications if provided
+            if modified_state:
+                state.update(modified_state)
+            
+            # Serialize state
+            state_data = self._serialize_state(state)
+            
+            # Create new checkpoint ID
+            new_checkpoint_id = f"{checkpoint_id}_resume_start"
+            
+            # Create metadata
+            metadata = {
+                "resumed_from_thread": original_thread_id,
+                "resumed_from_checkpoint": checkpoint_id,
+                "resume_time": datetime.now().isoformat(),
+                "description": description or "Resumed execution from checkpoint",
+            }
+            
+            # Insert checkpoint in new thread
+            await db.execute("""
+                INSERT INTO checkpoints 
+                (thread_id, checkpoint_id, checkpoint_ns, checkpoint_data, 
+                 parent_checkpoint_id, metadata, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                new_thread_id,
+                new_checkpoint_id,
+                "",
+                state_data,
+                None,
+                json.dumps(metadata),
+                datetime.now().isoformat()
+            ))
+            await db.commit()
+        
+        return new_checkpoint_id
+    
+    async def create_branch(
+        self,
+        original_thread_id: str,
+        checkpoint_id: str,
+        branch_name: str,
+        modified_state: Optional[Dict[str, Any]] = None,
+        description: Optional[str] = None,
+    ) -> str:
+        """Create a new execution branch from a checkpoint.
+        
+        Args:
+            original_thread_id: Original thread ID
+            checkpoint_id: Checkpoint ID to branch from
+            branch_name: Name for the branch
+            modified_state: Optional modified state
+            description: Optional description
+            
+        Returns:
+            New branch thread ID
+        """
+        await self._ensure_initialized()
+        
+        # Create branch thread ID
+        branch_thread_id = f"{original_thread_id}_{branch_name}"
+        
+        async with self.db_manager.get_connection() as db:
+            # Get original checkpoint
+            async with db.execute("""
+                SELECT checkpoint_data FROM checkpoints
+                WHERE thread_id = ? AND checkpoint_id = ?
+            """, (original_thread_id, checkpoint_id)) as cursor:
+                row = await cursor.fetchone()
+                if not row:
+                    raise ValueError(f"Checkpoint {checkpoint_id} not found in thread {original_thread_id}")
+                
+                original_data = row[0]
+            
+            # Deserialize original state
+            state = self._deserialize_state(original_data)
+            
+            # Apply modifications if provided
+            if modified_state:
+                state.update(modified_state)
+            
+            # Serialize state
+            state_data = self._serialize_state(state)
+            
+            # Create new checkpoint ID
+            new_checkpoint_id = f"{checkpoint_id}_branch_start"
+            
+            # Create metadata
+            metadata = {
+                "branched_from_thread": original_thread_id,
+                "branched_from_checkpoint": checkpoint_id,
+                "branch_name": branch_name,
+                "branch_time": datetime.now().isoformat(),
+                "description": description or f"Branch '{branch_name}' from checkpoint",
+            }
+            
+            # Insert checkpoint in branch thread
+            await db.execute("""
+                INSERT INTO checkpoints 
+                (thread_id, checkpoint_id, checkpoint_ns, checkpoint_data, 
+                 parent_checkpoint_id, metadata, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                branch_thread_id,
+                new_checkpoint_id,
+                "",
+                state_data,
+                None,
+                json.dumps(metadata),
+                datetime.now().isoformat()
+            ))
+            await db.commit()
+        
+        return branch_thread_id

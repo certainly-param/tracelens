@@ -12,9 +12,9 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Node.js 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-00a7b7.svg)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-000000.svg)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15+-000000.svg)](https://nextjs.org/)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Contributing](#-contributing)
+[Features](#-features) • [Quick Start](#-quick-start) • [Contributing](#-contributing)
 
 </div>
 
@@ -33,13 +33,35 @@ TraceLens provides a **"Diagnostic Command Center"** that offers:
 
 ## Features
 
+### Telemetry & Visualization
 - **Real-time Agent Monitoring**: Watch your LangGraph agents execute in real-time
 - **Interactive Graph Visualization**: Beautiful React Flow graphs showing execution paths
-- **Time-Travel Debugging**: Navigate through checkpoints and inspect state at any point
 - **OpenTelemetry Integration**: Standardized telemetry collection and export
 - **SQLite Persistence**: Local storage with WAL mode for efficient checkpointing
 - **Modern UI**: Clean, minimalistic interface built with Next.js and Tailwind CSS
 - **Easy Integration**: Sidecar pattern - no modifications to your agent code needed
+
+### Time-Travel Navigation
+- **Checkpoint Browser**: Navigate through checkpoint history with ease
+- **State Diff Viewer**: Compare state between any two checkpoints
+- **Timeline View**: Chronological view of all events (checkpoints, spans, transitions)
+- **Execution Replay**: Step-by-step replay with play/pause/step controls
+
+### Active Intervention
+- **State Editor**: Edit checkpoint state with JSON editor and validation
+- **Prompt Editor**: Modify agent prompts and instructions
+- **Resume Execution**: Continue agent execution from modified checkpoints
+- **Execution Branching**: Create named branches for A/B testing and exploration
+- **State Validation**: Validate state edits with errors and warnings before saving
+
+### Security & Production Readiness
+- **API Key Authentication**: Optional auth for write endpoints
+- **Rate Limiting**: Configurable limits (read/write)
+- **Configurable CORS**: Restrict origins via environment
+- **JSON-only State Input**: No pickle from API (prevents RCE)
+- **Audit Logging**: State edits, resume, and branch operations
+- **Centralized Error Handling**: Sanitized responses, structured logging
+- **Enhanced Health Checks**: Database connectivity included
 
 ## Architecture
 
@@ -124,6 +146,18 @@ FASTAPI_PORT=8000
 
 # Optional: LLM model selection
 LLM_MODEL=gemini-1.5-pro  # or gemini-1.5-flash for faster responses
+
+# Optional: Security
+TRACELENS_REQUIRE_AUTH=false
+TRACELENS_API_KEY=
+TRACELENS_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+TRACELENS_RATE_LIMIT=100/minute
+TRACELENS_RATE_LIMIT_WRITE=20/minute
+TRACELENS_MAX_STATE_SIZE=10485760
+
+# Frontend: Set when auth enabled (same as TRACELENS_API_KEY)
+NEXT_PUBLIC_TRACELENS_API_KEY=
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 ## Quick Start
@@ -197,15 +231,19 @@ tracelens/
 │   │   ├── instrumentation/   # OTel hooks & checkpointer
 │   │   ├── storage/            # SQLite persistence
 │   │   └── api/                # FastAPI endpoints
+│   ├── tests/                  # Unit tests & benchmarks
+│   ├── benchmarks/             # Benchmark runner (run_all.py)
 │   ├── scripts/                # Utility scripts
 │   ├── requirements.txt
+│   ├── requirements-dev.txt
 │   └── main.py
-├── frontend/                   # Next.js app
-│   ├── components/             # React components
-│   ├── hooks/                  # Custom React hooks
+├── frontend/                   # Next.js 15 app
+│   ├── src/components/         # React components
+│   ├── src/hooks/              # Custom React hooks
 │   ├── pages/                  # Next.js pages
 │   └── package.json
 ├── docker-compose.yml
+├── CHANGELOG.md
 ├── README.md
 └── .gitignore
 ```
@@ -220,37 +258,22 @@ tracelens/
 - **Frontend**: Next.js + React Flow for graph visualization
 - **Styling**: Tailwind CSS for modern UI
 
+### Testing & Benchmarks
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest tests -k "not bench" -v          # unit tests only
+pytest tests/bench_metrics.py -v --benchmark-only   # benchmarks
+python -m benchmarks.run_all            # both
+```
+
 ## References
 
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [OpenTelemetry Standards](https://opentelemetry.io/)
 - [React Flow Documentation](https://reactflow.dev/)
 - [Google Gemini API](https://ai.google.dev/)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## What's Next
-
-Upcoming features and improvements in the pipeline:
-
-- **State editing and replay**: Modify checkpoint state and resume execution from any point
-- **Prompt editing**: Edit agent prompts dynamically and test different strategies
-- **Advanced filtering**: Filter runs by date range, status, duration, and custom attributes
-- **Export capabilities**: Export traces and checkpoints to JSON, CSV, and OTLP formats
-- **Search functionality**: Full-text search across spans, attributes, and checkpoint data
-- **Performance metrics**: Detailed timing analysis and bottleneck identification
-- **Multi-agent support**: Visualize and debug multiple agents running concurrently
-- **Real-time streaming**: Live updates as agents execute without manual refresh
-- **Custom visualizations**: Additional graph layouts and view modes
-- **Integration plugins**: Easy integration with popular agent frameworks and tools
 
 ## License
 
@@ -267,7 +290,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Made with ❤️ for the AI agent development community**
+**Made while eating 🍕 for the AI agent development community**
 
 ⭐ Star this repo if you find it helpful!
 
